@@ -1,0 +1,11 @@
+@baseUrl = localhost:3000/v1
+
+### Create a post
+POST {{baseUrl}}/posts
+Content-Type: application/json
+
+{
+    "title": "My first post",
+    "content": "This is my first post",
+    "tags": ["first", "post"]
+}
