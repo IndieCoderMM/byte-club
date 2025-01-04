@@ -11,8 +11,18 @@ Content-Type: application/json
 }
 
 ### Get a post 
-GET {{baseUrl}}/posts/101
+GET {{baseUrl}}/posts/133
 
 ### List posts
 GET {{baseUrl}}/posts
 
+### Update a post
+PATCH {{baseUrl}}/posts/132
+Content-Type: application/json
+
+{
+  "tags": ["Car fixing & building", "Car"]
+}
+
+### Delete a post
+DELETE {{baseUrl}}/posts/133

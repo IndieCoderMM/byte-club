@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strconv"
@@ -16,11 +17,16 @@ type CreatePostInput struct {
 }
 
 type UpdatePostInput struct {
-	Title   string   `json:"title" validate:"required,min=1,max=100"`
-	Content string   `json:"content" validate:"required,min=1,max=1000"`
+	Title   string   `json:"title" validate:"omitempty,min=1,max=100"`
+	Content string   `json:"content" validate:"omitempty,min=1,max=1000"`
 	Tags    []string `json:"tags"`
-	Version int      `json:"version" validate:"required"`
 }
+
+type postContextKey string
+
+const (
+	postKey postContextKey = "post"
+)
 
 func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request) {
 	var payload CreatePostInput
@@ -65,21 +71,9 @@ func (app *application) listPostsHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
-	idParam := chi.URLParam(r, "postID")
-	postID, err := strconv.ParseInt(idParam, 10, 64)
+	post, err := getPostFromContext(r)
 	if err != nil {
-		app.badRequest(w, r, err)
-		return
-	}
-
-	post, err := app.store.Posts.Get(r.Context(), postID)
-	if err != nil {
-		switch {
-		case errors.Is(err, store.ErrRecordNotFound):
-			app.notFound(w, r, err)
-		default:
-			app.internalServerError(w, r, err)
-		}
+		app.internalServerError(w, r, err)
 		return
 	}
 
@@ -96,10 +90,9 @@ func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request) {
-	idParam := chi.URLParam(r, "postID")
-	postID, err := strconv.ParseInt(idParam, 10, 64)
+	post, err := getPostFromContext(r)
 	if err != nil {
-		app.badRequest(w, r, err)
+		app.internalServerError(w, r, err)
 		return
 	}
 
@@ -114,11 +107,6 @@ func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	post := store.Post{
-		ID:      postID,
-		Version: payload.Version,
-	}
-
 	if payload.Title != "" {
 		post.Title = payload.Title
 	}
@@ -131,7 +119,7 @@ func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request
 		post.Tags = payload.Tags
 	}
 
-	if err := app.store.Posts.Update(r.Context(), &post); err != nil {
+	if err := app.store.Posts.Update(r.Context(), post); err != nil {
 		app.internalServerError(w, r, err)
 		return
 	}
@@ -142,14 +130,13 @@ func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (app *application) deletePostHandler(w http.ResponseWriter, r *http.Request) {
-	idParam := chi.URLParam(r, "postID")
-	postID, err := strconv.ParseInt(idParam, 10, 64)
+	post, err := getPostFromContext(r)
 	if err != nil {
-		app.badRequest(w, r, err)
+		app.internalServerError(w, r, err)
 		return
 	}
 
-	if err := app.store.Posts.Delete(r.Context(), postID); err != nil {
+	if err := app.store.Posts.Delete(r.Context(), post.ID); err != nil {
 		app.internalServerError(w, r, err)
 		return
 	}
@@ -157,4 +144,38 @@ func (app *application) deletePostHandler(w http.ResponseWriter, r *http.Request
 	if err := app.jsonResponse(w, http.StatusNoContent, nil); err != nil {
 		app.internalServerError(w, r, err)
 	}
+}
+
+func (app *application) postContextMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		idParam := chi.URLParam(r, "postID")
+		postID, err := strconv.ParseInt(idParam, 10, 64)
+		if err != nil {
+			app.badRequest(w, r, err)
+			return
+		}
+
+		post, err := app.store.Posts.Get(r.Context(), postID)
+		if err != nil {
+			switch {
+			case errors.Is(err, store.ErrRecordNotFound):
+				app.notFound(w, r, err)
+			default:
+				app.internalServerError(w, r, err)
+			}
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), postKey, post)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func getPostFromContext(r *http.Request) (*store.Post, error) {
+	post, ok := r.Context().Value(postKey).(*store.Post)
+	if !ok {
+		return nil, errors.New("post not found in context")
+	}
+
+	return post, nil
 }
