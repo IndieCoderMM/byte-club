@@ -13,6 +13,14 @@ func init() {
 	Validate = validator.New(validator.WithRequiredStructEnabled())
 }
 
+func (app *application) jsonResponse(w http.ResponseWriter, status int, data interface{}) error {
+	type envelop struct {
+		Data interface{} `json:"data"`
+	}
+
+	return writeJSON(w, status, &envelop{data})
+}
+
 func writeJSON(w http.ResponseWriter, status int, data interface{}) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
