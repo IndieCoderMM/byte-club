@@ -5,7 +5,11 @@ POST {{baseUrl}}/posts
 Content-Type: application/json
 
 {
-    "title": "My first post",
+    "title": "My",
     "content": "This is my first post",
     "tags": ["first", "post"]
 }
+
+### Get a post 
+GET {{baseUrl}}/posts/1
+

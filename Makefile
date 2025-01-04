@@ -1,6 +1,6 @@
 .PHONY: all
 all:
-	@echo "Specify a target"
+	@echo "Specify a command:\n migration, migrate, migrate-down, migrate-status, migrate-validate"
 
 .PHONY: migration
 migration:
