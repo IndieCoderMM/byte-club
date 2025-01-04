@@ -52,6 +52,18 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
+func (app *application) listPostsHandler(w http.ResponseWriter, r *http.Request) {
+	posts, err := app.store.Posts.List(r.Context())
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	if err := app.jsonResponse(w, http.StatusOK, posts); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}
+
 func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 	idParam := chi.URLParam(r, "postID")
 	postID, err := strconv.ParseInt(idParam, 10, 64)

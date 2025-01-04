@@ -11,5 +11,8 @@ Content-Type: application/json
 }
 
 ### Get a post 
-GET {{baseUrl}}/posts/1
+GET {{baseUrl}}/posts/101
+
+### List posts
+GET {{baseUrl}}/posts
 

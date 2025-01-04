@@ -1,6 +1,6 @@
 .PHONY: all
 all:
-	@echo "Specify a command:\n migration, migrate, migrate-down, migrate-status, migrate-validate"
+	@echo "Specify a command:\n migration, migrate, migrate-down, migrate-status, migrate-validate, seed"
 
 .PHONY: migration
 migration:
@@ -28,3 +28,7 @@ migrate-status:
 .PHONY: migrate-validate
 migrate-validate:
 	@goose validate
+
+.PHONY: seed 
+seed:
+	@go run cmd/db/seed/main.go

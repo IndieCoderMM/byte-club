@@ -4,15 +4,18 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 )
 
 var (
-	ErrRecordNotFound = errors.New("Record not found")
+	ErrRecordNotFound    = errors.New("Record not found")
+	QueryTimeoutDuration = time.Second * 5
 )
 
 type Store struct {
 	Posts interface {
 		Create(context.Context, *Post) error
+		List(context.Context) ([]Post, error)
 		Get(context.Context, int64) (*Post, error)
 		Update(context.Context, *Post) error
 		Delete(context.Context, int64) error
